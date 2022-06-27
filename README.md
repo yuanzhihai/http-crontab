@@ -19,30 +19,59 @@
 
 ## 简单使用
 
-**新建 run.php**
+**新建 命令行**
 
 ```php
 <?php
-
-require_once "./vendor/autoload.php";
+namespace app\command;
 
 use Fairy\HttpCrontab;
+use think\console\Command;
+use think\console\Input;
+use think\console\input\Argument;
+use think\console\input\Option;
+use think\console\Output;
 
-date_default_timezone_set('PRC');
+class Crontab extends Command
+{
+    protected function configure()
+    {
+        $this->setName('crontab')
+            ->addArgument('action', Argument::REQUIRED, 'start|stop|restart|reload|status|connections')
+            ->addOption('daemon', 'd', Option::VALUE_NONE, 'Run the http crontab server in daemon mode.')
+            ->addOption('name', null, Option::VALUE_OPTIONAL, 'Crontab name', 'Crontab Server')
+            ->addOption('debug', null, Option::VALUE_NONE, 'Print log')
+            ->setDescription('Run http crontab server');
+    }
 
+    protected function execute(Input $input, Output $output)
+    {
+        $action = trim($input->getArgument('action'));
+        if (!in_array($action, ['start', 'stop', 'restart', 'reload', 'status', 'connections'])) {
+            $this->output->writeln('action参数值非法');
+            return false;
+        }
+        $options = $input->getOptions();
+        $url     = '';
+        if (config('crontab.base_url') !== null && config('crontab.base_url')) {
+            if (!preg_match('/https?:\/\//', config('crontab.base_url'))) {
+                $this->output->writeln('crontab base_url 配置值非法');
+                return false;
+            }
+            $url = config('crontab.base_url');
+        }
 
-//启动后默认监听 http://127.0.0.1:2345 
-//可在new的时候传递第一个参数改变监听地址
-if (file_exists('.env')) {
-    $env    = parse_ini_file('.env', true);
-    $server = new HttpCrontab(isset($env['CRONTAB']) ? ($env['CRONTAB']['BASE_URI'] ?? '') : '');
-    $server->setDbConfig($env['DATABASE'] ? array_change_key_case($env['DATABASE'], CASE_LOWER) : [])
-        ->setName('Crontab Http Server')
-        ->setSafeKey(isset($env['CRONTAB']) ? ($env['CRONTAB']['SAFE_KEY'] ?? null) : null);
-} else {
-    $server = new HttpCrontab();
+        $server   = new HttpCrontab($url);
+        $database = config('database.connections.mysql');
+        $server->setName($options['name'])
+            ->setDbConfig($database ?? []);
+        if (config('crontab.safe_key') !== null && config('crontab.safe_key')) {
+            $server->setSafeKey(config('crontab.safe_key'));
+        }
+        $options['debug'] && $server->setDebug();
+        $server->run();
+    }
 }
-$server->setDebug()->run();
 ```
 
 **启动服务**
@@ -191,12 +220,12 @@ $server->setDebug()->run();
 
 **Query**
 
-| 参数名称  | 是否必须 | 示例                              | 备注         |
-|-------| -------- |---------------------------------| ------------ |
-| page  | 是       | 1                               | 页码         |
-| limit | 是       | 15                              | 每页条数     |
-| where | 否       | [['title','like','%thinkphp%']] | 检索字段值   |
-
+| 参数名称  | 是否必须 | 示例                    | 备注         |
+|-------| -------- |-----------------------| ------------ |
+| page  | 是       | 1                     | 页码         |
+| limit | 是       | 15                    | 每页条数     |
+| filter   | 否       | {"title":"输出 tp 版本"}  | 检索字段值   |
+| op       | 否       | {"title":"%*%"}       | 检索字段操作 |
 
 
 ## 删除
@@ -339,11 +368,12 @@ $server->setDebug()->run();
 
 **Query**
 
-| 参数名称  | 是否必须 | 示例                     | 备注         |
-|-------| -------- |------------------------| ------------ |
-| page  | 是       | 1                      | 页码         |
-| limit | 是       | 15                     | 每页条数     |
-| where | 否       | [['crontab_id','=',1]] | 检索字段值   |
+| 参数名称  | 是否必须 | 示例                 | 备注         |
+|-------| -------- |--------------------| ------------ |
+| page  | 是       | 1                  | 页码         |
+| limit | 是       | 15                 | 每页条数     |
+| filter   | 否       | {"crontab_id":"1"} | 检索字段值   |
+| op       | 否       | {"crontab_id":"="}        | 检索字段操作 |
 
 ## 添加
 

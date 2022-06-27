@@ -465,15 +465,13 @@ class HttpCrontab
      */
     private function crontabIndex(Request $request): array
     {
-        $limit = $data['limit'] ?? 15;
-        $page  = $data['page'] ?? 1;
-        $where = $data['where'] ?? [];
-        $data  = Db::table($this->systemCrontabTable)
+        list($page, $limit, $where) = $this->buildParames($request->get());
+        $data = Db::table($this->systemCrontabTable)
             ->where($where)
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
 
-        return ['list' => $data];
+        return ['data' => $data->items(), 'total' => $data->total()];
     }
 
     /**
@@ -503,7 +501,7 @@ class HttpCrontab
         if (in_array($param['field'], ['status', 'sort', 'remark', 'title', 'rule'])) {
             $row = Db::table($this->systemCrontabTable)
                 ->where('id', $param['id'])
-                ->update($param);
+                ->update([$param['field'] => $param['value']]);
 
             if ($param['field'] === 'status') {
                 if ($param['value'] == self::NORMAL_STATUS) {
@@ -607,7 +605,12 @@ class HttpCrontab
                             $code      = 0;
                             $result    = true;
                             try {
-                                $exception = Console::call($data['target'], [$parameter]);
+                                if (!empty($parameter)) {
+                                    $command = Console::call($data['target'], [$parameter]);
+                                } else {
+                                    $command = Console::call($data['target']);
+                                }
+                                $exception = $command->fetch();
                             } catch (\Throwable $e) {
                                 $result    = false;
                                 $code      = 1;
@@ -623,7 +626,7 @@ class HttpCrontab
                                 'crontab_id'   => $data['id'],
                                 'target'       => $data['target'],
                                 'parameter'    => $parameter,
-                                'exception'    => $exception,
+                                'exception'    => $exception ?? '',
                                 'return_code'  => $code,
                                 'running_time' => round($endTime - $startTime, 6),
                                 'create_time'  => $time,
@@ -717,7 +720,7 @@ class HttpCrontab
                             $this->crontabRunLog([
                                 'crontab_id'   => $data['id'],
                                 'target'       => $data['target'],
-                                'parameter'    => $data['parameter'],
+                                'parameter'    => $data['parameter'] ?? '',
                                 'exception'    => $exception ?? '',
                                 'return_code'  => $code,
                                 'running_time' => round($endTime - $startTime, 6),
@@ -759,7 +762,7 @@ class HttpCrontab
                                 'crontab_id'   => $data['id'],
                                 'target'       => $data['target'],
                                 'parameter'    => $parameter,
-                                'exception'    => $exception,
+                                'exception'    => $exception ?? '',
                                 'return_code'  => $code,
                                 'running_time' => round($endTime - $startTime, 6),
                                 'create_time'  => $time,
@@ -816,11 +819,12 @@ class HttpCrontab
      */
     private function crontabFlow(Request $request): array
     {
-        [$page, $limit, $where, $month] = $request->get();
-        $request->get('crontab_id') && $where[] = ['crontab_id', '=', $request->get('crontab_id')];
+        $crontab_id = $request->get('crontab_id');
+        list($page, $limit, $where, $excludeFields) = $this->buildParames($request->get(), ['month']);
+        $crontab_id && $where[] = ['crontab_id', '=', $request->get('crontab_id')];
         $allTables = $this->getDbTables();
-        $tableName = isset($month) && !empty($month) ?
-            preg_replace('/_\d+/', '_' . date('Ym', strtotime($month)), $this->systemCrontabLogTable) :
+        $tableName = isset($excludeFields['month']) && !empty($excludeFields['month']) ?
+            preg_replace('/_\d+/', '_' . date('Ym', strtotime($excludeFields['month'])), $this->systemCrontabLogTable) :
             $this->systemCrontabLogTable;
         $data      = [];
         if (in_array($tableName, $allTables)) {
@@ -830,7 +834,7 @@ class HttpCrontab
                 ->paginate(['list_rows' => $limit, 'page' => $page]);
         }
 
-        return ['list' => $data];
+        return ['data' => $data->items(), 'total' => $data->total()];
     }
 
     /**
@@ -1022,6 +1026,59 @@ SQL;
         return new Response($code, [
             'Content-Type' => 'application/json; charset=utf-8',
         ], json_encode(['code' => $code, 'data' => $data, 'msg' => $msg]));
+    }
+
+    /**
+     * 构建请求参数
+     * @param array $get
+     * @param array $excludeFields 忽略构建搜索的字段
+     * @return array
+     */
+    private function buildParames($get, $excludeFields = [])
+    {
+        $page    = isset($get['page']) && !empty($get['page']) ? (int)$get['page'] : 1;
+        $limit   = isset($get['limit']) && !empty($get['limit']) ? (int)$get['limit'] : 15;
+        $filters = isset($get['filter']) && !empty($get['filter']) ? $get['filter'] : '{}';
+        $ops     = isset($get['op']) && !empty($get['op']) ? $get['op'] : '{}';
+        // json转数组
+        $filters  = json_decode($filters, true);
+        $ops      = json_decode($ops, true);
+        $where    = [];
+        $excludes = [];
+
+        foreach ($filters as $key => $val) {
+            if (in_array($key, $excludeFields)) {
+                $excludes[$key] = $val;
+                continue;
+            }
+            $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
+
+            switch (strtolower($op)) {
+                case '=':
+                    $where[] = [$key, '=', $val];
+                    break;
+                case '%*%':
+                    $where[] = [$key, 'like', "%{$val}%"];
+                    break;
+                case '*%':
+                    $where[] = [$key, 'like', "{$val}%"];
+                    break;
+                case '%*':
+                    $where[] = [$key, 'like', "%{$val}"];
+                    break;
+                case 'range':
+                    list($beginTime, $endTime) = explode(' - ', $val);
+                    $where[] = [$key, 'between', [strtotime($beginTime), strtotime($endTime)]];
+                    break;
+                case 'in':
+                    $where[] = [$key, 'in', $val];
+                    break;
+                default:
+                    $where[] = [$key, $op, "%{$val}"];
+            }
+        }
+
+        return [$page, $limit, $where, $excludes];
     }
 
 
