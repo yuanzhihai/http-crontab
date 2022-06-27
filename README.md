@@ -24,7 +24,7 @@
 * Command 任务请先按照 thinkphp 官方文档定义好执行命令，在新增任务，输入定义的 命令 即可 例如：version
 
 * Shell 任务 在新增任务，输入定义的 shell命令 即可 例如：ps -ef | grep php
-* 
+
 ## 简单使用
 
 **新建 命令行**
