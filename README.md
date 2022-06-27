@@ -21,7 +21,7 @@
 
 * Class 任务必须指定带有 命名空间的类名，并且实现一个 public 属性的方法：execute 方法返回值为 bool / string 类型
 
-* Command 任务请先按照 webman 官方文档定义好执行命令，在新增任务，输入定义的 命令 即可 例如：version
+* Command 任务请先按照 thinkphp 官方文档定义好执行命令，在新增任务，输入定义的 命令 即可 例如：version
 
 * Shell 任务 在新增任务，输入定义的 shell命令 即可 例如：ps -ef | grep php
 * 
