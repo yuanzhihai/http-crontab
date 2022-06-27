@@ -465,7 +465,7 @@ class HttpCrontab
      */
     private function crontabIndex(Request $request): array
     {
-        list($page, $limit, $where) = $this->buildParames($request->get());
+        [$page, $limit, $where] = $this->buildParames($request->get());
         $data = Db::table($this->systemCrontabTable)
             ->where($where)
             ->order('id', 'desc')
@@ -820,7 +820,7 @@ class HttpCrontab
     private function crontabFlow(Request $request): array
     {
         $crontab_id = $request->get('crontab_id');
-        list($page, $limit, $where, $excludeFields) = $this->buildParames($request->get(), ['month']);
+        [$page, $limit, $where, $excludeFields] = $this->buildParames($request->get(), ['month']);
         $crontab_id && $where[] = ['crontab_id', '=', $request->get('crontab_id')];
         $allTables = $this->getDbTables();
         $tableName = isset($excludeFields['month']) && !empty($excludeFields['month']) ?
