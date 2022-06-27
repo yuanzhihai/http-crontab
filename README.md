@@ -84,8 +84,11 @@ class Crontab extends Command
 
 **启动服务**
 
-![](https://i.loli.net/2021/09/23/dTGRMSjkQZyWIbH.png)
+![](https://www.workerman.net/upload/img/20220627/2762b9758c4cf8.jpg)
 
+**效果图**
+![](https://www.workerman.net/upload/img/20220412/12625506364e29.png)
+![](https://www.workerman.net/upload/img/20220412/12625506890a16.png)
 
 
 
