@@ -1067,8 +1067,8 @@ SQL;
                     $where[] = [$key, 'like', "%{$val}"];
                     break;
                 case 'range':
-                    list($beginTime, $endTime) = explode(' - ', $val);
-                    $where[] = [$key, 'between', [strtotime($beginTime), strtotime($endTime)]];
+                    [$begin, $end] = explode(' - ', $val);
+                    $where[] = [$key, 'between', [strtotime($begin), strtotime($end)]];
                     break;
                 case 'in':
                     $where[] = [$key, 'in', $val];
