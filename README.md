@@ -279,58 +279,60 @@ $server->setDebug()->run();
 
 ```
 {
-&nbsp; "code": 200,
-&nbsp; "data": {
+  "code": 200,
+  "msg": "ok",
+  "data": {
     "total": 97,
     "per_page": 15,
     "current_page": 1,
     "last_page": 7,
-&nbsp;&nbsp;&nbsp; "data": [
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 12,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "crontab_id": 1,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "target": "version",
-        "parameter":"",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "exception": "v6.0.7",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "return_code": 0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "running_time": "0.115895",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "create_time": 1625636673,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "update_time": 1625636673
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; },
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 11,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "crontab_id": 1,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "target": "version",
-        "parameter":"",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "exception": "v6.0.7",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "return_code": 0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "running_time": "0.104641",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "create_time": 1625636670,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "update_time": 1625636670
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; },
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 10,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "crontab_id": 1,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "target": "version",
-        "parameter":"",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "exception": "v6.0.7",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "return_code": 0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "running_time": "0.106585",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "create_time": 1625636667,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "update_time": 1625636667
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; },
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 9,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "crontab_id": 1,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; crontab_id
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "running_time": "0.10808",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "create_time": 1625636664,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "update_time": 1625636664
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; },
-&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp; ],
-&nbsp; },
-&nbsp; "msg": "信息调用成功！"
+    "data": [
+      {
+        "id": 257,
+        "crontab_id": 1,
+        "target": "version",
+        "parameter": "",
+        "exception": "v6.0.12LTS",
+        "return_code": 0,
+        "running_time": "0.834571",
+        "create_time": 1651123800,
+        "update_time": 1651123800
+      },
+      {
+        "id": 251,
+        "crontab_id": 1,
+        "target": "version",
+        "parameter": "",
+        "exception": "v6.0.12LTS",
+        "return_code": 0,
+        "running_time": "0.540384",
+        "create_time": 1651121700,
+        "update_time": 1651121700
+      },
+      {
+        "id": 246,
+        "crontab_id": 1,
+        "target": "version",
+        "parameter": "",
+        "exception": "v6.0.12LTS",
+        "return_code": 0,
+        "running_time": "0.316019",
+        "create_time": 1651121640,
+        "update_time": 1651121640
+      },
+      {
+        "id": 244,
+        "crontab_id": 1,
+        "target": "version",
+        "parameter": "",
+        "exception": "v6.0.12LTS",
+        "return_code": 0,
+        "running_time": "0.493848",
+        "create_time": 1651121580,
+        "update_time": 1651121580
+      }
+    ]
+  }
 }
 ```
 ### 请求参数
