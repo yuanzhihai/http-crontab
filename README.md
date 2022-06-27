@@ -2,7 +2,7 @@
 
 ## 概述
 
-基于 **Workerman** + **TpOrm** 的接口化秒级定时任务管理，兼容 Windows 和 Linux 系统。
+基于 **Workerman** + **ThinkPHP6** 的接口化秒级定时任务管理，兼容 Windows 和 Linux 系统。
 
 ## 定时器格式说明：
 
@@ -131,9 +131,6 @@
 &nbsp; "code": 200,
 &nbsp; "data": {
     "total": 4,
-    "per_page": 15,
-    "current_page": 1,
-    "last_page": 1,
 &nbsp;&nbsp;&nbsp; "data": [
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 1,
@@ -232,21 +229,23 @@
 **Method：** GET
 
 **接口描述：**
-
-<pre><code>{
-&nbsp; "code": 200,
-&nbsp; "data": [
-&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "id": 1,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "shell": "php think version",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "frequency": "*/3 * * * * *",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "remark": "没3秒执行",
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "create_time": "2021-07-07 13:43:29"
-&nbsp;&nbsp;&nbsp; }
-&nbsp; ],
-&nbsp; "msg": "信息调用成功！"
+```
+"code": 200,
+"data": [
+ {
+   "id": 1,
+   "type": 1,
+   "target": "version",
+   "rule": "*/3 * * * * *",
+   "parameter": "",
+   "remark": "每3秒执行",
+   "singleton":1,
+   "create_time": "2021-07-07 13:43:29"
+ }
+],
+ "msg": "信息调用成功！"
 }
-</code></pre>
+```
 
 ### 请求参数
 
@@ -269,9 +268,6 @@
   "msg": "ok",
   "data": {
     "total": 97,
-    "per_page": 15,
-    "current_page": 1,
-    "last_page": 7,
     "data": [
       {
         "id": 257,
