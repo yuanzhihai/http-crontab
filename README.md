@@ -35,12 +35,12 @@ date_default_timezone_set('PRC');
 //可在new的时候传递第一个参数改变监听地址
 if (file_exists('.env')) {
     $env    = parse_ini_file('.env', true);
-    $server = new HttpCrontabService(isset($env['CRONTAB']) ? ($env['CRONTAB']['BASE_URI'] ?? '') : '');
+    $server = new HttpCrontab(isset($env['CRONTAB']) ? ($env['CRONTAB']['BASE_URI'] ?? '') : '');
     $server->setDbConfig($env['DATABASE'] ? array_change_key_case($env['DATABASE'], CASE_LOWER) : [])
         ->setName('Crontab Http Server')
         ->setSafeKey(isset($env['CRONTAB']) ? ($env['CRONTAB']['SAFE_KEY'] ?? null) : null);
 } else {
-    $server = new HttpCrontabService();
+    $server = new HttpCrontab();
 }
 $server->setDebug()->run();
 ```
