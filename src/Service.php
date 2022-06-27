@@ -9,8 +9,6 @@ class Service extends \think\Service
 
     public function boot()
     {
-        $this->commands([
-            Crontab::class,
-        ]);
+        $this->commands(['crontab'=>Crontab::class]);
     }
 }
