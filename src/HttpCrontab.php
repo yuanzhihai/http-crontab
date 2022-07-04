@@ -42,6 +42,8 @@ class HttpCrontab
     public const URL_CRONTAB = '3';
     //shell
     public const SHELL_CRONTAB = '4';
+    //Sql
+    public const SQL_CRONTAB ='5';
 
     /**
      * worker 实例
@@ -772,6 +774,47 @@ class HttpCrontab
                         })
                     ];
                     break;
+                case self::SQL_CRONTAB:
+                    $this->crontabPool[$data['id']] = [
+                        'id'          => $data['id'],
+                        'target'      => $data['target'],
+                        'rule'        => $data['rule'],
+                        'parameter'   => $data['parameter'],
+                        'singleton'   => $data['singleton'],
+                        'create_time' => date('Y-m-d H:i:s'),
+                        'crontab'     => new Crontab($data['rule'], function () use ($data) {
+                            $time      = time();
+                            $parameter = $data['parameter'];
+                            $startTime = microtime(true);
+                            $code      = 0;
+                            $result    = true;
+                            try {
+                                $exception = json_encode(Db::query("{$data['target']}"));
+                            } catch (\Throwable $e) {
+                                $result    = false;
+                                $code      = 1;
+                                $exception = $e->getMessage();
+                            }
+
+                            $this->runInSingleton($data);
+
+                            $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
+                            $endTime = microtime(true);
+                            Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
+                            $this->crontabRunLog([
+                                'crontab_id'   => $data['id'],
+                                'target'       => $data['target'],
+                                'parameter'    => $parameter ?? '',
+                                'exception'    => $exception ?? '',
+                                'return_code'  => $code,
+                                'running_time' => round($endTime - $startTime, 6),
+                                'create_time'  => $time,
+                                'update_time'  => $time,
+                            ]);
+
+                        })
+                    ];
+                    break;
             }
         }
     }
@@ -964,10 +1007,10 @@ class HttpCrontab
  CREATE TABLE IF NOT EXISTS `{$this->systemCrontabTable}`  (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务标题',
-  `type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '任务类型 (1 command, 2 class, 3 url 4 shell)',
+  `type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '任务类型 (1 command, 2 class, 3 url 4 shell 5 sql)',
   `rule` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务Cron规则',
   `target` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '任务调用目标',
-  `parameter` varchar(500) NOT NULL COMMENT '任务调用参数', 
+  `parameter` varchar(500) NOT NULL COMMENT '任务调用参数(url/shell/sql无效)', 
   `running_times` int(11) NOT NULL DEFAULT '0' COMMENT '已运行次数',
   `last_running_time` int(11) NOT NULL DEFAULT '0' COMMENT '上次运行时间',
   `remark` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '备注',
