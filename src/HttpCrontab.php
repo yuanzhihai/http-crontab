@@ -43,7 +43,7 @@ class HttpCrontab
     //shell
     public const SHELL_CRONTAB = '4';
     //Sql
-    public const SQL_CRONTAB ='5';
+    public const SQL_CRONTAB = '5';
 
     /**
      * worker 实例
@@ -789,7 +789,7 @@ class HttpCrontab
                             $code      = 0;
                             $result    = true;
                             try {
-                                $exception = json_encode(Db::query("{$data['target']}"));
+                                $exception = Db::query("{$data['target']}") ? json_encode(Db::query("{$data['target']}")) : '';
                             } catch (\Throwable $e) {
                                 $result    = false;
                                 $code      = 1;
