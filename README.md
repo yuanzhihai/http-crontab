@@ -19,7 +19,7 @@
 ## 任务分类
 * url 任务可以指定一个url地址来请求，没有什么可解释的。
 
-* Class 任务必须指定带有 命名空间的类名，并且实现一个 public 属性的方法：execute 方法返回值为 bool / string 类型
+* Class 任务必须指定带有 命名空间的类名，并且实现一个 public 属性的方法：execute 方法返回值为 bool/string类型，支持自定义方法  事例：target='app\\common\\model\\User@check'  @后面是方法 
 
 * Command 任务请先按照 thinkphp 官方文档定义好执行命令，在新增任务，输入定义的 命令 即可 例如：version
 

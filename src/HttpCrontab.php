@@ -649,30 +649,38 @@ class HttpCrontab
                         'crontab'     => new Crontab($data['rule'], function () use ($data) {
                             $time       = time();
                             $class      = trim($data['target']);
-                            $method     = 'execute';
-                            $parameters = $data['parameter'] ?: '';
+                            $parameters = $data['parameter'] ?: null;
                             $startTime  = microtime(true);
-                            if ($class && class_exists($class) && method_exists($class, $method)) {
-                                try {
-                                    $result   = true;
-                                    $code     = 0;
-                                    $instance = Container::getInstance()->get($class);
-                                    if ($parameters && is_array($parameters)) {
-                                        $res = $instance->{$method}(...$parameters);
-                                    } else {
-                                        $res = $instance->{$method}();
-                                    }
-                                } catch (\Throwable $throwable) {
-                                    $result = false;
-                                    $code   = 1;
+                            if ($class) {
+                                if (strpos($class, '@') !== false) {
+                                    $class  = explode('@', $class);
+                                    $method = end($class);
+                                    array_pop($class);
+                                    $class = implode('@', $class);
+                                } else {
+                                    $method = 'execute';
                                 }
-                                $exception = isset($throwable) ? $throwable->getMessage() : $res;
-                            } else {
-                                $result    = false;
-                                $code      = 1;
-                                $exception = "方法或类不存在或者错误";
+                                if (class_exists($class) && method_exists($class, $method)) {
+                                    try {
+                                        $result   = true;
+                                        $code     = 0;
+                                        $instance = Container::getInstance()->get($class);
+                                        if (!empty($parameters)) {
+                                            $res = $instance->{$method}($parameters);
+                                        } else {
+                                            $res = $instance->{$method}();
+                                        }
+                                    } catch (\Throwable $throwable) {
+                                        $result = false;
+                                        $code   = 1;
+                                    }
+                                    $exception = isset($throwable) ? $throwable->getMessage() : $res;
+                                } else {
+                                    $result    = false;
+                                    $code      = 1;
+                                    $exception = "方法或类不存在或者错误";
+                                }
                             }
-
                             $this->runInSingleton($data);
                             $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
                             $endTime = microtime(true);
@@ -789,7 +797,7 @@ class HttpCrontab
                             $code      = 0;
                             $result    = true;
                             try {
-                                $exception = Db::query("{$data['target']}") ? json_encode(Db::query("{$data['target']}")) : '';
+                                $exception = json_encode(Db::query("{$data['target']}"));
                             } catch (\Throwable $e) {
                                 $result    = false;
                                 $code      = 1;
