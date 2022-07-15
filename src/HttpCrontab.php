@@ -885,7 +885,7 @@ class HttpCrontab
                 ->paginate(['list_rows' => $limit, 'page' => $page]);
         }
 
-        return ['data' => $data->items(), 'total' => $data->total()];
+        return ['data' => $data ? $data->items() : [], 'total' => $data ? $data->total() : 0];
     }
 
     /**
