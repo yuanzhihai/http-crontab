@@ -89,11 +89,6 @@ class HttpCrontab
      */
     private $systemCrontabLogTable = 'system_crontab_log';
 
-    /**
-     * 定时任务日志表后缀 按月分表
-     * @var string|null
-     */
-    private $systemCrontabLogTableSuffix;
 
     /**
      * 最低PHP版本
@@ -309,7 +304,7 @@ class HttpCrontab
         $dbConfig = array_change_key_case($config);
         if ($dbConfig['prefix']) {
             $this->systemCrontabTable    = $dbConfig['prefix'] . $this->systemCrontabTable;
-            $this->systemCrontabLogTable = $dbConfig['prefix'] . $this->systemCrontabLogTable . '_' . date('Ym');
+            $this->systemCrontabLogTable = $dbConfig['prefix'] . $this->systemCrontabLogTable;
         }
         return $this;
     }
@@ -871,20 +866,12 @@ class HttpCrontab
     private function crontabFlow(Request $request): array
     {
         $crontab_id = $request->get('crontab_id');
-        [$page, $limit, $where, $excludeFields] = $this->buildParames($request->get(), ['month']);
+        [$page, $limit, $where] = $this->buildParames($request->get());
         $crontab_id && $where[] = ['crontab_id', '=', $request->get('crontab_id')];
-        $allTables = $this->getDbTables();
-        $tableName = isset($excludeFields['month']) && !empty($excludeFields['month']) ?
-            preg_replace('/_\d+/', '_' . date('Ym', strtotime($excludeFields['month'])), $this->systemCrontabLogTable) :
-            $this->systemCrontabLogTable;
-        $data      = [];
-        if (in_array($tableName, $allTables)) {
-            $data = Db::table($tableName)
-                ->where($where)
-                ->order(['id' => 'desc'])
-                ->paginate(['list_rows' => $limit, 'page' => $page]);
-        }
-
+        $data = Db::table($this->systemCrontabLogTable)
+            ->where($where)
+            ->order(['id' => 'desc'])
+            ->paginate(['list_rows' => $limit, 'page' => $page]);
         return ['data' => $data ? $data->items() : [], 'total' => $data ? $data->total() : 0];
     }
 
@@ -996,14 +983,10 @@ class HttpCrontab
      */
     private function checkCrontabTables()
     {
-        $date = date('Ym', time());
-        if ($date !== $this->systemCrontabLogTableSuffix) {
-            $this->systemCrontabLogTableSuffix = $date;
-            $this->systemCrontabLogTable       = preg_replace('/_\d+/', '_' . $date, $this->systemCrontabLogTable);
-            $allTables                         = $this->getDbTables();
-            !in_array($this->systemCrontabTable, $allTables) && $this->createSystemCrontabTable();
-            !in_array($this->systemCrontabLogTable, $allTables) && $this->createSystemCrontabLogTable();
-        }
+        $allTables = $this->getDbTables();
+        !in_array($this->systemCrontabTable, $allTables) && $this->createSystemCrontabTable();
+        !in_array($this->systemCrontabLogTable, $allTables) && $this->createSystemCrontabLogTable();
+
     }
 
     /**
@@ -1057,7 +1040,7 @@ CREATE TABLE IF NOT EXISTS `{$this->systemCrontabLogTable}`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `create_time`(`create_time`) USING BTREE,
   INDEX `crontab_id`(`crontab_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时器任务流水表{$this->systemCrontabLogTableSuffix}' ROW_FORMAT = DYNAMIC
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时器任务流水表' ROW_FORMAT = DYNAMIC
 SQL;
 
         return Db::query($sql);
