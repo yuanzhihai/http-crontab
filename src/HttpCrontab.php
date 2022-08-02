@@ -659,7 +659,7 @@ class HttpCrontab
                                     try {
                                         $result   = true;
                                         $code     = 0;
-                                        $instance = Container::getInstance()->get($class);
+                                        $instance = Container::getInstance()->make($class);
                                         if (!empty($parameters)) {
                                             $res = $instance->{$method}($parameters);
                                         } else {
