@@ -597,13 +597,13 @@ class HttpCrontab
                         'create_time' => date('Y-m-d H:i:s'),
                         'crontab'     => new Crontab($data['rule'], function () use ($data) {
                             $time      = time();
-                            $parameter = $data['parameter'] ?: '';
                             $startTime = microtime(true);
                             $code      = 0;
                             $result    = true;
                             try {
-                                if (!empty($parameter)) {
-                                    $command = Console::call($data['target'], [$parameter]);
+                                $parameter = explode(' ', $data['parameter']);
+                                if (is_array($parameter) && !empty($data['parameter'])) {
+                                    $command = Console::call($data['target'], $parameter);
                                 } else {
                                     $command = Console::call($data['target']);
                                 }
