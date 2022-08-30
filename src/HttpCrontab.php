@@ -578,8 +578,8 @@ class HttpCrontab
         $id   = $request->post('id');
         $item = Db::table($this->systemCrontabTable)
             ->where('id', $id)
-            ->findOrEmpty();
-        if (!$item->isEmpty()) {
+            ->find();
+        if (!empty($item)) {
             $this->debug && $this->writeln("立即运行一次", "OnlyOne");
             $this->crontabRun($id, true);
             return true;
