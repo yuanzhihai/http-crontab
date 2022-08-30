@@ -33,6 +33,7 @@ class HttpCrontab
     const FLOW_PATH = '/crontab/flow';
     const POOL_PATH = '/crontab/pool';
     const PING_PATH = '/crontab/ping';
+    const RUNONE_PATH = '/crontab/runone';
 
     // 命令任务
     public const COMMAND_CRONTAB = '1';
@@ -148,6 +149,7 @@ class HttpCrontab
             $r->get(self::FLOW_PATH, [$this, 'crontabFlow']);
             $r->get(self::POOL_PATH, [$this, 'crontabPool']);
             $r->get(self::PING_PATH, [$this, 'crontabPong']);
+            $r->post(self::RUNONE_PATH, [$this, 'crontabRunOne']);
         });
     }
 
@@ -567,6 +569,27 @@ class HttpCrontab
     }
 
     /**
+     * 执行一次
+     * @param Request $request
+     * @return bool
+     */
+    private function crontabRunOne(Request $request): bool
+    {
+        $id   = $request->post('id');
+        $item = Db::table($this->systemCrontabTable)
+            ->where('id', $id)
+            ->findOrEmpty();
+        if (!$item->isEmpty()) {
+            $this->debug && $this->writeln("立即运行一次", "OnlyOne");
+            $this->crontabRun($id, true);
+            return true;
+        } else {
+            return false;
+        }
+
+    }
+
+    /**
      * 创建定时器
      * 0   1   2   3   4   5
      * |   |   |   |   |   |
@@ -585,10 +608,14 @@ class HttpCrontab
             ->where('id', $id)
             ->where('status', self::NORMAL_STATUS)
             ->find();
+        if ($run === true) {
+            echo $id;
+        }
         if (!empty($data)) {
             switch ($data['type']) {
                 case self::COMMAND_CRONTAB:
                     if ($run === true) {
+                        echo 'one';
                         $this->runCommandCrontab($data);
                     } else {
                         $this->crontabPool[$data['id']] = [
@@ -750,6 +777,7 @@ class HttpCrontab
                 $exception = "方法或类不存在或者错误";
             }
         }
+
         $this->runInSingleton($data);
 
         $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
@@ -846,7 +874,6 @@ class HttpCrontab
             $code      = 1;
             $exception = $e->getMessage();
         }
-
         $this->runInSingleton($data);
 
         $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
@@ -871,7 +898,8 @@ class HttpCrontab
      */
     private function runInSingleton($crontab)
     {
-        if ($crontab['singleton'] === 0) {
+        if ($crontab['singleton'] === 0 && isset($this->crontabPool[$crontab['id']])) {
+            $this->debug && $this->writeln("定时器销毁", "Destroy");
             $this->crontabPool[$crontab['id']]['crontab']->destroy();
         }
     }
