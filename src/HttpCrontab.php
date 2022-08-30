@@ -722,10 +722,10 @@ class HttpCrontab
             $code      = 1;
             $exception = $e->getMessage();
         }
+        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
 
         $this->runInSingleton($data);
 
-        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
         $endTime = microtime(true);
         Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
 
@@ -777,10 +777,10 @@ class HttpCrontab
                 $exception = "方法或类不存在或者错误";
             }
         }
+        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
 
         $this->runInSingleton($data);
 
-        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
         $endTime = microtime(true);
         Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
         $this->crontabRunLog([
@@ -810,10 +810,10 @@ class HttpCrontab
             $code      = 1;
             $exception = $throwable->getMessage();
         }
+        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
 
         $this->runInSingleton($data);
 
-        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
         $endTime = microtime(true);
         Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
         $this->crontabRunLog([
@@ -842,10 +842,10 @@ class HttpCrontab
             $code      = 1;
             $exception = $e->getMessage();
         }
+        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
 
         $this->runInSingleton($data);
 
-        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
         $endTime = microtime(true);
         Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
         $this->crontabRunLog([
@@ -874,9 +874,10 @@ class HttpCrontab
             $code      = 1;
             $exception = $e->getMessage();
         }
+        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
+
         $this->runInSingleton($data);
 
-        $this->debug && $this->writeln('执行定时器任务#' . $data['id'] . ' ' . $data['rule'] . ' ' . $data['target'], $result);
         $endTime = microtime(true);
         Db::query("UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}");
         $this->crontabRunLog([
