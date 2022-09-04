@@ -558,7 +558,7 @@ class HttpCrontab
     private function crontabModify(Request $request): bool
     {
         $param = $request->post();
-        if (in_array($param['field'], ['status', 'sort', 'remark', 'title', 'rule'])) {
+        if (in_array($param['field'], ['status', 'sort'])) {
             $row = Db::table($this->systemCrontabTable)
                 ->where('id', $param['id'])
                 ->update([$param['field'] => $param['value']]);
