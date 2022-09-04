@@ -315,8 +315,8 @@ class HttpCrontab
     {
         $dbConfig = array_change_key_case($config);
         if ($dbConfig['prefix']) {
-            $this->systemCrontabTable    = $dbConfig['prefix'] . $this->systemCrontabTable;
-            $this->systemCrontabLogTable = $dbConfig['prefix'] . $this->systemCrontabLogTable;
+            $this->systemCrontabTable     = $dbConfig['prefix'] . $this->systemCrontabTable;
+            $this->systemCrontabLogTable  = $dbConfig['prefix'] . $this->systemCrontabLogTable;
             $this->systemCrontabLockTable = $dbConfig['prefix'] . $this->systemCrontabLockTable;
         }
         return $this;
