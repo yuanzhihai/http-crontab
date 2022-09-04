@@ -509,8 +509,7 @@ class HttpCrontab
         $row = [];
         if ($id = $request->get('id')) {
             $row = Db::table($this->systemCrontabTable)
-                ->find($id)
-                ->toArray();
+                ->find($id);
         }
         return $row;
     }
