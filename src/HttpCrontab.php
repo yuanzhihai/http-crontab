@@ -1065,6 +1065,7 @@ class HttpCrontab
     {
         $row = Db::table($this->systemCrontabLockTable)
             ->where(['crontab_id' => $crontab_id])
+            ->lock(true)
             ->find();
         if (!$row) {
             $now = time();
