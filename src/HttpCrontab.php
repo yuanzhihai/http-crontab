@@ -859,7 +859,7 @@ class HttpCrontab
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
                 'target'       => $data['target'],
-                'parameter'    => $parameters ?? '',
+                'parameter'    => $data['parameter'] ?? '',
                 'exception'    => $exception ?? '',
                 'return_code'  => $code,
                 'running_time' => round( $endTime - $startTime,6 ),
