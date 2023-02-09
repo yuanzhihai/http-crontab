@@ -23,7 +23,7 @@
     "workerman/crontab": "^1.0"
   },
   "require-dev": {
-    "topthink/framework": "^6.0.0",
+    "topthink/framework": ">=6.0",
     "guzzlehttp/guzzle": "^7.0"
   },
   "autoload": {
