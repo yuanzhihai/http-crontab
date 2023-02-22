@@ -671,9 +671,6 @@ class HttpCrontab
             ->where( 'id',$id )
             ->where( 'status',self::NORMAL_STATUS )
             ->find();
-        if ($run === true) {
-            echo $id;
-        }
         if (!empty( $data )) {
             switch ( $data['type'] ) {
                 case self::COMMAND_CRONTAB:
