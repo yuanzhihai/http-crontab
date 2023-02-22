@@ -2,8 +2,7 @@
 
 namespace Fairy;
 
-use FastRoute\Dispatcher;
-use FastRoute\RouteCollector;
+use Fairy\exception\HttpException;
 use think\Container;
 use think\facade\Console;
 use think\facade\Db;
@@ -100,15 +99,15 @@ class HttpCrontab
 
 
     /**
+     * 路由对象
+     * @var Route
+     */
+    private $route;
+    /**
      * 最低PHP版本
      * @var string
      */
     private $lessPhpVersion = '7.2.5';
-
-    /**
-     * @var Dispatcher
-     */
-    private $dispatcher;
 
     /**
      * 安全秘钥
@@ -123,7 +122,7 @@ class HttpCrontab
     public function __construct(string $socketName = '',array $contextOption = [])
     {
         $this->checkEnv();
-        $this->registerRoute();
+        $this->initRoute();
         $this->initWorker( $socketName,$contextOption );
     }
 
@@ -144,23 +143,31 @@ class HttpCrontab
     }
 
     /**
+     * 初始化路由
+     */
+    private function initRoute()
+    {
+        $this->route = new Route();
+        $this->registerRoute();
+    }
+
+    /**
      * 注册路由
      */
     private function registerRoute()
     {
-        $this->dispatcher = \FastRoute\simpleDispatcher( function (RouteCollector $r) {
-            $r->get( self::INDEX_PATH,[$this,'crontabIndex'] );
-            $r->post( self::ADD_PATH,[$this,'crontabCreate'] );
-            $r->get( self::READ_PATH,[$this,'crontabRead'] );
-            $r->post( self::EDIT_PATH,[$this,'crontabUpdate'] );
-            $r->post( self::MODIFY_PATH,[$this,'crontabModify'] );
-            $r->post( self::DELETE_PATH,[$this,'crontabDelete'] );
-            $r->post( self::RELOAD_PATH,[$this,'crontabReload'] );
-            $r->get( self::FLOW_PATH,[$this,'crontabFlow'] );
-            $r->get( self::POOL_PATH,[$this,'crontabPool'] );
-            $r->get( self::PING_PATH,[$this,'crontabPong'] );
-            $r->post( self::RUNONE_PATH,[$this,'crontabRunOne'] );
-        } );
+        $this->route->addRoute( 'GET',self::INDEX_PATH,[$this,'crontabIndex'] )
+            ->addRoute( 'POST',self::ADD_PATH,[$this,'crontabCreate'] )
+            ->addRoute( 'GET',self::READ_PATH,[$this,'crontabRead'] )
+            ->addRoute( 'POST',self::EDIT_PATH,[$this,'crontabUpdate'] )
+            ->addRoute( 'POST',self::MODIFY_PATH,[$this,'crontabModify'] )
+            ->addRoute( 'POST',self::DELETE_PATH,[$this,'crontabDelete'] )
+            ->addRoute( 'POST',self::RELOAD_PATH,[$this,'crontabReload'] )
+            ->addRoute( 'GET',self::FLOW_PATH,[$this,'crontabFlow'] )
+            ->addRoute( 'GET',self::POOL_PATH,[$this,'crontabPool'] )
+            ->addRoute( 'GET',self::PING_PATH,[$this,'crontabPong'] )
+            ->addRoute( 'GET',self::RUNONE_PATH,[$this,'crontabRunOne'] )
+            ->register();
     }
 
     /**
@@ -393,7 +400,8 @@ class HttpCrontab
     /**
      * 当客户端通过连接发来数据时(Workerman收到数据时)触发的回调函数
      * @param TcpConnection $connection
-     * @param $data
+     * @param $request
+     * @return void
      */
     public function onMessage(TcpConnection $connection,$request)
     {
@@ -401,17 +409,11 @@ class HttpCrontab
             if (!is_null( $this->safeKey ) && $request->header( 'key' ) !== $this->safeKey) {
                 $connection->send( $this->response( '','Connection Not Allowed',403 ) );
             } else {
-                $routeInfo = $this->dispatcher->dispatch( $request->method(),$request->path() );
-                switch ( $routeInfo[0] ) {
-                    case Dispatcher::NOT_FOUND:
-                        $connection->send( $this->response( '','Not Found',404 ) );
-                        break;
-                    case Dispatcher::METHOD_NOT_ALLOWED:
-                        $connection->send( $this->response( '','Method Not Allowed',405 ) );
-                        break;
-                    case Dispatcher::FOUND:
-                        $connection->send( $this->response( call_user_func( $routeInfo[1],$request ) ) );
-                        break;
+                try {
+                    $routeInfo = $this->route->dispatch( $request->method(),$request->path() );
+                    $connection->send( $this->response( call_user_func( $routeInfo[1],$request ) ) );
+                } catch ( HttpException $e ) {
+                    $connection->send( $this->response( '',$e->getMessage(),$e->getStatusCode() ) );
                 }
             }
         }
@@ -792,7 +794,8 @@ class HttpCrontab
             $this->runInSingleton( $data );
 
             $endTime = microtime( true );
-            Db::query( "UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}" );
+
+            $this->cronUpdateTask( ['id' => $data['id'],'time' => $time] );
 
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
@@ -855,7 +858,9 @@ class HttpCrontab
             $this->runInSingleton( $data );
 
             $endTime = microtime( true );
-            Db::query( "UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}" );
+
+            $this->cronUpdateTask( ['id' => $data['id'],'time' => $time] );
+
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
                 'target'       => $data['target'],
@@ -896,7 +901,9 @@ class HttpCrontab
             $this->runInSingleton( $data );
 
             $endTime = microtime( true );
-            Db::query( "UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}" );
+
+            $this->cronUpdateTask( ['id' => $data['id'],'time' => $time] );
+
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
                 'target'       => $data['target'],
@@ -936,7 +943,9 @@ class HttpCrontab
             $this->runInSingleton( $data );
 
             $endTime = microtime( true );
-            Db::query( "UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}" );
+
+            $this->cronUpdateTask( ['id' => $data['id'],'time' => $time] );
+
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
                 'target'       => $data['target'],
@@ -976,7 +985,9 @@ class HttpCrontab
             $this->runInSingleton( $data );
 
             $endTime = microtime( true );
-            Db::query( "UPDATE {$this->systemCrontabTable} SET running_times = running_times + 1, last_running_time = {$time} WHERE id = {$data['id']}" );
+
+            $this->cronUpdateTask( ['id' => $data['id'],'time' => $time] );
+
             $this->crontabRunLog( [
                 'crontab_id'   => $data['id'],
                 'target'       => $data['target'],
@@ -1057,18 +1068,33 @@ class HttpCrontab
     }
 
     /**
+     * 更新任务信息
+     * @param $task
+     * @return void
+     */
+    private function cronUpdateTask($task)
+    {
+        Db::table( $this->systemCrontabTable )
+            ->where( 'id',$task['id'] )
+            ->update( [
+                'running_times'     => Db::raw( 'running_times+1' ),
+                'last_running_time' => $task['time']
+            ] );
+    }
+
+    /**
      * 是否加锁
      * @param $crontab_id
      * @return bool
      */
     private function isCrontabLocked($crontab_id): bool
     {
+        $now = time();
         $row = Db::table( $this->systemCrontabLockTable )
             ->where( ['crontab_id' => $crontab_id] )
             ->lock( true )
             ->find();
         if (!$row) {
-            $now = time();
             Db::table( $this->systemCrontabLockTable )
                 ->insert( [
                     'crontab_id'  => $crontab_id,
@@ -1097,12 +1123,23 @@ class HttpCrontab
     /**
      * 解锁
      * @param $crontab_id
-     * @return bool
+     * @return void
      */
-    private function crontabUnlock($crontab_id): bool
+    private function crontabUnlock($crontab_id): void
+    {
+        Db::table( $this->systemCrontabLockTable )
+            ->where( 'crontab_id',$crontab_id )
+            ->update( ['is_lock' => 0,'update_time' => time()] );
+    }
+
+    /**
+     * 重置锁
+     * @return int
+     * @throws DbException
+     */
+    private function taskLockReset(): int
     {
         return Db::table( $this->systemCrontabLockTable )
-            ->where( 'crontab_id',$crontab_id )
             ->update( ['is_lock' => 0,'update_time' => time()] );
     }
 
