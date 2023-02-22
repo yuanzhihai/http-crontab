@@ -765,7 +765,7 @@ class HttpCrontab
     private function runCommandCrontab($data)
     {
         $crontab_id = $data['id'];
-        if (!$this->isCrontabLocked( $crontab_id )) {
+        if (!$this->checkCrontabLock( $crontab_id )) {
             //加锁
             $this->crontabLock( $crontab_id );
 
@@ -812,7 +812,7 @@ class HttpCrontab
     private function runClassCrontab($data)
     {
         $crontab_id = $data['id'];
-        if (!$this->isCrontabLocked( $crontab_id )) {
+        if (!$this->checkCrontabLock( $crontab_id )) {
             //加锁
             $this->crontabLock( $crontab_id );
 
@@ -876,7 +876,7 @@ class HttpCrontab
     private function runUrlCrontab($data)
     {
         $crontab_id = $data['id'];
-        if (!$this->isCrontabLocked( $crontab_id )) {
+        if (!$this->checkCrontabLock( $crontab_id )) {
             //加锁
             $this->crontabLock( $crontab_id );
 
@@ -919,7 +919,7 @@ class HttpCrontab
     private function runShellCrontab($data)
     {
         $crontab_id = $data['id'];
-        if (!$this->isCrontabLocked( $crontab_id )) {
+        if (!$this->checkCrontabLock( $crontab_id )) {
             //加锁
             $this->crontabLock( $crontab_id );
 
@@ -961,7 +961,7 @@ class HttpCrontab
     private function runSqlCrontab($data)
     {
         $crontab_id = $data['id'];
-        if (!$this->isCrontabLocked( $crontab_id )) {
+        if (!$this->checkCrontabLock( $crontab_id )) {
             //加锁
             $this->crontabLock( $crontab_id );
 
@@ -1079,30 +1079,65 @@ class HttpCrontab
             ] );
     }
 
+
     /**
-     * 是否加锁
-     * @param $crontab_id
+     * 检查任务锁
+     * @param $taskId
      * @return bool
      */
-    private function isCrontabLocked($crontab_id): bool
+    public function checkCrontabLock($crontab_id): bool
     {
-        $now = time();
-        $row = Db::table( $this->systemCrontabLockTable )
+        $crontabLock = $this->getCrontabLock( $crontab_id );
+        if (!$crontabLock) {
+            $this->insertCrontabLock( $crontab_id );
+            return false;
+        } else {
+            return $this->isCrontabLocked( $crontabLock['is_lock'] );
+        }
+    }
+
+
+    /**
+     * 获取任务锁信息
+     * @param $crontab_id
+     * @return array|mixed
+     */
+    public function getCrontabLock($crontab_id)
+    {
+        return Db::table( $this->systemCrontabLockTable )
             ->where( ['crontab_id' => $crontab_id] )
             ->lock( true )
             ->find();
-        if (!$row) {
-            Db::table( $this->systemCrontabLockTable )
-                ->insert( [
-                    'crontab_id'  => $crontab_id,
-                    'is_lock'     => 0,
-                    'create_time' => $now,
-                    'update_time' => $now
-                ] );
-            return false;
-        } else {
-            return $row['is_lock'] == 1;
-        }
+    }
+
+
+    /**
+     * 插入任务锁数据
+     * @param $crontab_id
+     * @param $isLock
+     * @return void
+     */
+    public function insertCrontabLock($crontab_id,$isLock = 0)
+    {
+        $now = time();
+        Db::table( $this->systemCrontabLockTable )
+            ->insert( [
+                'crontab_id'  => $crontab_id,
+                'is_lock'     => $isLock,
+                'create_time' => $now,
+                'update_time' => $now
+            ] );
+    }
+
+
+    /**
+     * 是否加锁
+     * @param $isLock
+     * @return bool
+     */
+    private function isCrontabLocked($isLock): bool
+    {
+        return $isLock == 1;
     }
 
     /**
@@ -1132,11 +1167,12 @@ class HttpCrontab
     /**
      * 重置锁
      * @return int
-     * @throws \think\db\exception\DbException
      */
     private function taskLockReset(): int
     {
+        $ids = Db::table( $this->systemCrontabLockTable )->column( 'id' );
         return Db::table( $this->systemCrontabLockTable )
+            ->whereIn( 'id',$ids )
             ->update( ['is_lock' => 0,'update_time' => time()] );
     }
 
@@ -1241,7 +1277,11 @@ class HttpCrontab
         $allTables = $this->getDbTables();
         !in_array( $this->systemCrontabTable,$allTables ) && $this->createSystemCrontabTable();
         !in_array( $this->systemCrontabLogTable,$allTables ) && $this->createSystemCrontabLogTable();
-        !in_array( $this->systemCrontabLockTable,$allTables ) && $this->createSystemCrontabLockTable();
+        if (in_array( $this->systemCrontabLockTable,$allTables )) {
+            $this->taskLockReset();
+        } else {
+            $this->createSystemCrontabLockTable();
+        }
 
     }
 
