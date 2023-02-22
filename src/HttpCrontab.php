@@ -1132,7 +1132,7 @@ class HttpCrontab
     /**
      * 重置锁
      * @return int
-     * @throws DbException
+     * @throws \think\db\exception\DbException
      */
     private function taskLockReset(): int
     {
