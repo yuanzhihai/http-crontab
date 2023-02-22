@@ -1168,7 +1168,7 @@ class HttpCrontab
      * 重置锁
      * @return int
      */
-    private function taskLockReset(): int
+    private function crontabLockReset(): int
     {
         $ids = Db::table( $this->systemCrontabLockTable )->column( 'id' );
         return Db::table( $this->systemCrontabLockTable )
@@ -1278,7 +1278,7 @@ class HttpCrontab
         !in_array( $this->systemCrontabTable,$allTables ) && $this->createSystemCrontabTable();
         !in_array( $this->systemCrontabLogTable,$allTables ) && $this->createSystemCrontabLogTable();
         if (in_array( $this->systemCrontabLockTable,$allTables )) {
-            $this->taskLockReset();
+            $this->crontabLockReset();
         } else {
             $this->createSystemCrontabLockTable();
         }
