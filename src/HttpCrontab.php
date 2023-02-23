@@ -166,7 +166,7 @@ class HttpCrontab
             ->addRoute( 'GET',self::FLOW_PATH,[$this,'crontabFlow'] )
             ->addRoute( 'GET',self::POOL_PATH,[$this,'crontabPool'] )
             ->addRoute( 'GET',self::PING_PATH,[$this,'crontabPong'] )
-            ->addRoute( 'GET',self::RUNONE_PATH,[$this,'crontabRunOne'] )
+            ->addRoute( 'POST',self::RUNONE_PATH,[$this,'crontabRunOne'] )
             ->register();
     }
 
