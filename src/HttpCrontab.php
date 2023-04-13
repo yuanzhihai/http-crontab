@@ -382,7 +382,7 @@ class HttpCrontab
      */
     public function onConnect(TcpConnection $connection)
     {
-        $this->checkCrontabTables();
+       
     }
 
     /**
