@@ -3,6 +3,7 @@
 namespace Fairy;
 
 use Fairy\exception\HttpException;
+use Symfony\Component\Process\Process;
 use think\Container;
 use think\facade\Console;
 use think\facade\Db;
@@ -382,7 +383,7 @@ class HttpCrontab
      */
     public function onConnect(TcpConnection $connection)
     {
-       
+
     }
 
     /**
@@ -929,7 +930,16 @@ class HttpCrontab
             $code      = 0;
             $result    = true;
             try {
-                $exception = shell_exec( $data['target'] );
+                $cmd     = explode( ' ',$data['target'] );
+                $process = new Process( $cmd );
+                $process->setTimeout( 0 );
+                $process->run();
+                if ($process->isSuccessful()) {
+                    $exception = $process->getOutput();
+                } else {
+                    $exception = $process->getErrorOutput();
+                }
+                // $exception = shell_exec( $data['target'] );
             } catch ( \Throwable $e ) {
                 $result    = false;
                 $code      = 1;
