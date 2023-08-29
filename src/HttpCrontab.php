@@ -12,6 +12,7 @@ use Workerman\Crontab\Crontab;
 use Workerman\Protocols\Http\Request;
 use Workerman\Protocols\Http\Response;
 use Workerman\Worker;
+use yzh52521\ThinkLock\Locker;
 
 /**
  * 注意：定时器开始、暂停、重起 都是在下一分钟开始执行
@@ -91,13 +92,6 @@ class HttpCrontab
      * @var string
      */
     private $systemCrontabLogTable = 'system_crontab_log';
-
-    /**
-     * 定时任务锁表
-     * @var string
-     */
-    private $systemCrontabLockTable = 'system_crontab_lock';
-
 
     /**
      * 路由对象
@@ -325,7 +319,6 @@ class HttpCrontab
         if ($dbConfig['prefix']) {
             $this->systemCrontabTable     = $dbConfig['prefix'] . $this->systemCrontabTable;
             $this->systemCrontabLogTable  = $dbConfig['prefix'] . $this->systemCrontabLogTable;
-            $this->systemCrontabLockTable = $dbConfig['prefix'] . $this->systemCrontabLockTable;
         }
         return $this;
     }
@@ -765,11 +758,8 @@ class HttpCrontab
 
     private function runCommandCrontab($data)
     {
-        $crontab_id = $data['id'];
-        if (!$this->checkCrontabLock($crontab_id)) {
-            //加锁
-            $this->crontabLock($crontab_id);
-
+        $lock = Locker::lock('run_command_crontab_' . $data['id']);
+        if ($lock->acquire()) {
             $time      = time();
             $startTime = microtime(true);
             $code      = 0;
@@ -810,21 +800,17 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
-            //解锁
-            $this->crontabUnlock($crontab_id);
         }
     }
 
     private function runClassCrontab($data)
     {
-        $crontab_id = $data['id'];
-        if (!$this->checkCrontabLock($crontab_id)) {
-            //加锁
-            $this->crontabLock($crontab_id);
-
+        $lock = Locker::lock('run_class_crontab_' . $data['id']);
+        if ($lock->acquire()) {
             $time      = time();
             $class     = trim($data['target']);
             $startTime = microtime(true);
+            $code      = 0;
             if ($class) {
                 if (strpos($class, '@') !== false) {
                     $class  = explode('@', $class);
@@ -837,7 +823,6 @@ class HttpCrontab
                 if (class_exists($class) && method_exists($class, $method)) {
                     try {
                         $result     = true;
-                        $code       = 0;
                         $instance   = Container::getInstance()->make($class);
                         $parameters = !empty($data['parameter']) ? json_decode($data['parameter'], true) : [];
                         if (!empty($parameters)) {
@@ -874,18 +859,13 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
-            //解锁
-            $this->crontabUnlock($crontab_id);
         }
     }
 
     private function runUrlCrontab($data)
     {
-        $crontab_id = $data['id'];
-        if (!$this->checkCrontabLock($crontab_id)) {
-            //加锁
-            $this->crontabLock($crontab_id);
-
+        $lock = Locker::lock('run_url_crontab_' . $data['id']);
+        if ($lock->acquire()) {
             $time      = time();
             $url       = trim($data['target']);
             $startTime = microtime(true);
@@ -917,18 +897,13 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
-            //解锁
-            $this->crontabUnlock($crontab_id);
         }
     }
 
     private function runShellCrontab($data)
     {
-        $crontab_id = $data['id'];
-        if (!$this->checkCrontabLock($crontab_id)) {
-            //加锁
-            $this->crontabLock($crontab_id);
-
+        $lock = Locker::lock('run_shell_crontab_' . $data['id']);
+        if ($lock->acquire()) {
             $time      = time();
             $parameter = $data['parameter'] ?: '';
             $startTime = microtime(true);
@@ -967,18 +942,13 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
-            //解锁
-            $this->crontabUnlock($crontab_id);
         }
     }
 
     private function runSqlCrontab($data)
     {
-        $crontab_id = $data['id'];
-        if (!$this->checkCrontabLock($crontab_id)) {
-            //加锁
-            $this->crontabLock($crontab_id);
-
+        $lock = Locker::lock('run_sql_crontab_' . $data['id']);
+        if ($lock->acquire()) {
             $time      = time();
             $parameter = $data['parameter'];
             $startTime = microtime(true);
@@ -1009,8 +979,6 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
-            //解锁
-            $this->crontabUnlock($crontab_id);
         }
     }
 
@@ -1093,102 +1061,6 @@ class HttpCrontab
             ]);
     }
 
-
-    /**
-     * 检查任务锁
-     * @param $taskId
-     * @return bool
-     */
-    public function checkCrontabLock($crontab_id): bool
-    {
-        $crontabLock = $this->getCrontabLock($crontab_id);
-        if (!$crontabLock) {
-            $this->insertCrontabLock($crontab_id);
-            return false;
-        } else {
-            return $this->isCrontabLocked($crontabLock['is_lock']);
-        }
-    }
-
-
-    /**
-     * 获取任务锁信息
-     * @param $crontab_id
-     * @return array|mixed
-     */
-    public function getCrontabLock($crontab_id)
-    {
-        return Db::table($this->systemCrontabLockTable)
-            ->where(['crontab_id' => $crontab_id])
-            ->lock(true)
-            ->find();
-    }
-
-
-    /**
-     * 插入任务锁数据
-     * @param $crontab_id
-     * @param $isLock
-     * @return void
-     */
-    public function insertCrontabLock($crontab_id, $isLock = 0)
-    {
-        $now = time();
-        Db::table($this->systemCrontabLockTable)
-            ->insert([
-                'crontab_id'  => $crontab_id,
-                'is_lock'     => $isLock,
-                'create_time' => $now,
-                'update_time' => $now
-            ]);
-    }
-
-
-    /**
-     * 是否加锁
-     * @param $isLock
-     * @return bool
-     */
-    private function isCrontabLocked($isLock): bool
-    {
-        return $isLock == 1;
-    }
-
-    /**
-     * 加锁
-     * @param $crontab_id
-     * @return bool
-     */
-    private function crontabLock($crontab_id): bool
-    {
-        return Db::table($this->systemCrontabLockTable)
-            ->where('crontab_id', $crontab_id)
-            ->update(['is_lock' => 1, 'update_time' => time()]);
-    }
-
-    /**
-     * 解锁
-     * @param $crontab_id
-     * @return void
-     */
-    private function crontabUnlock($crontab_id): void
-    {
-        Db::table($this->systemCrontabLockTable)
-            ->where('crontab_id', $crontab_id)
-            ->update(['is_lock' => 0, 'update_time' => time()]);
-    }
-
-    /**
-     * 重置锁
-     * @return int
-     */
-    private function crontabLockReset(): int
-    {
-        $ids = Db::table($this->systemCrontabLockTable)->column('id');
-        return Db::table($this->systemCrontabLockTable)
-            ->whereIn('id', $ids)
-            ->update(['is_lock' => 0, 'update_time' => time()]);
-    }
 
     /**
      * 函数是否被禁用
@@ -1291,12 +1163,6 @@ class HttpCrontab
         $allTables = $this->getDbTables();
         !in_array($this->systemCrontabTable, $allTables) && $this->createSystemCrontabTable();
         !in_array($this->systemCrontabLogTable, $allTables) && $this->createSystemCrontabLogTable();
-        if (in_array($this->systemCrontabLockTable, $allTables)) {
-            $this->crontabLockReset();
-        } else {
-            $this->createSystemCrontabLockTable();
-        }
-
     }
 
     /**
@@ -1356,26 +1222,6 @@ SQL;
         return Db::query($sql);
     }
 
-    /**
-     * 定时器任务锁表
-     */
-    private function createSystemCrontabLockTable()
-    {
-        $sql = <<<SQL
-CREATE TABLE IF NOT EXISTS `{$this->systemCrontabLockTable}`  (
-  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `crontab_id` bigint UNSIGNED NOT NULL COMMENT '任务id',
-  `is_lock` tinyint(4) NOT NULL DEFAULT 0 COMMENT '是否锁定(0:否,1是)',
-  `create_time` int(11) NOT NULL DEFAULT 0 COMMENT '创建时间',
-  `update_time` int(11) NOT NULL DEFAULT 0 COMMENT '更新时间',
-  PRIMARY KEY (`id`) USING BTREE,
-  INDEX `crontab_id`(`crontab_id`) USING BTREE,
-  INDEX `create_time`(`create_time`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '定时器任务锁表' ROW_FORMAT = DYNAMIC
-SQL;
-
-        return Db::query($sql);
-    }
 
     /**
      * 获取数据库表名
@@ -1401,10 +1247,10 @@ SQL;
      */
     private function buildParames($get, $excludeFields = [])
     {
-        $page    = isset($get['page']) && !empty($get['page']) ? (int)$get['page'] : 1;
-        $limit   = isset($get['limit']) && !empty($get['limit']) ? (int)$get['limit'] : 15;
-        $filters = isset($get['filter']) && !empty($get['filter']) ? $get['filter'] : '{}';
-        $ops     = isset($get['op']) && !empty($get['op']) ? $get['op'] : '{}';
+        $page    = !empty($get['page']) ? (int)$get['page'] : 1;
+        $limit   = !empty($get['limit']) ? (int)$get['limit'] : 15;
+        $filters = !empty($get['filter']) ? $get['filter'] : '{}';
+        $ops     = !empty($get['op']) ? $get['op'] : '{}';
         // json转数组
         $filters  = json_decode($filters, true);
         $ops      = json_decode($ops, true);
@@ -1416,7 +1262,7 @@ SQL;
                 $excludes[$key] = $val;
                 continue;
             }
-            $op = isset($ops[$key]) && !empty($ops[$key]) ? $ops[$key] : '%*%';
+            $op = !empty($ops[$key]) ? $ops[$key] : '%*%';
 
             switch (strtolower($op)) {
                 case '=':
