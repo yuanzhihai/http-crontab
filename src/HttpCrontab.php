@@ -800,6 +800,7 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
+            $lock->release();
         }
     }
 
@@ -859,6 +860,7 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
+            $lock->release();
         }
     }
 
@@ -897,6 +899,7 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
+            $lock->release();
         }
     }
 
@@ -942,6 +945,7 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
+            $lock->release();
         }
     }
 
@@ -979,6 +983,7 @@ class HttpCrontab
                 'create_time'  => $time,
                 'update_time'  => $time,
             ]);
+            $lock->release();
         }
     }
 
