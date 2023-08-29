@@ -2,7 +2,7 @@
 
 ## 概述
 
-基于 **Workerman** + **ThinkPHP6** 的接口化秒级定时任务管理，兼容 Windows 和 Linux 系统。
+基于 **Workerman** + **ThinkPHP6.x/8.x** 的接口化秒级定时任务管理，兼容 Windows 和 Linux 系统。
 
 ## 定时器格式说明：
 
