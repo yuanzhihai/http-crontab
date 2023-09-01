@@ -13,8 +13,8 @@ return [
     // 数据表
     'table'    => [
         // 任务表
-        'task'     => 'crontab_task',
+        'task'     => 'crontab_task', //不带前缀
         // 任务日志表
-        'task_log' => 'crontab_task_log',
+        'task_log' => 'crontab_task_log',//不带前缀
     ]
 ];

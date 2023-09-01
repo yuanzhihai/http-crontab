@@ -36,8 +36,7 @@ class Crontab extends Command
 
         $server   = new HttpCrontab($config['base_url']);
         $database = config('database.connections.mysql');
-        $server->setName($config['name'])
-            ->setDbConfig($database ?? []);
+        $server->setName($config['name']);
         if ($config['safe_key']) {
             $server->setSafeKey($config['safe_key']);
         }
@@ -45,6 +44,7 @@ class Crontab extends Command
             $server->setTaskTable($config['table']['task'])
                 ->setTaskLogTable($config['table']['task_log']);
         }
+        $server->setDbConfig($database);
         $options['debug'] && $server->setDebug();
         $server->run();
     }
