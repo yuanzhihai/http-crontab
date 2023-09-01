@@ -84,13 +84,13 @@ class HttpCrontab
      * 定时任务表
      * @var string
      */
-    private $systemCrontabTable = 'system_crontab';
+    private $crontabTable = 'crontab_task';
 
     /**
      * 定时任务日志表
      * @var string
      */
-    private $systemCrontabLogTable = 'system_crontab_log';
+    private $crontabLogTable = 'crontab_task_log';
 
     /**
      * 路由对象
@@ -316,8 +316,8 @@ class HttpCrontab
     {
         $dbConfig = array_change_key_case($config);
         if ($dbConfig['prefix']) {
-            $this->systemCrontabTable    = $dbConfig['prefix'] . $this->systemCrontabTable;
-            $this->systemCrontabLogTable = $dbConfig['prefix'] . $this->systemCrontabLogTable;
+            $this->crontabTable    = $dbConfig['prefix'] . $this->crontabTable;
+            $this->crontabLogTable = $dbConfig['prefix'] . $this->crontabLogTable;
         }
         return $this;
     }
@@ -336,6 +336,29 @@ class HttpCrontab
         $this->worker->onBufferFull   = [$this, 'onBufferFull'];
         $this->worker->onBufferDrain  = [$this, 'onBufferDrain'];
         $this->worker->onError        = [$this, 'onError'];
+    }
+
+
+    /**
+     * 设置任务表名
+     * @param string $crontabTable
+     * @return $this
+     */
+    public function setTaskTable(string $crontabTable)
+    {
+        $this->crontabTable = $crontabTable;
+        return $this;
+    }
+
+    /**
+     * 设置任务日志表名
+     * @param string $crontabLogTable
+     * @return $this
+     */
+    public function setTaskLogTable(string $crontabLogTable)
+    {
+        $this->crontabLogTable = $crontabLogTable;
+        return $this;
     }
 
     /**
@@ -450,7 +473,7 @@ class HttpCrontab
      */
     private function crontabInit(): void
     {
-        $ids = Db::table($this->systemCrontabTable)
+        $ids = Db::table($this->crontabTable)
             ->where('status', '=', self::NORMAL_STATUS)
             ->order(['sort' => 'desc'])
             ->column('id');
@@ -471,7 +494,7 @@ class HttpCrontab
     private function crontabIndex(Request $request): array
     {
         [$page, $limit, $where] = $this->buildParames($request->get());
-        $data = Db::table($this->systemCrontabTable)
+        $data = Db::table($this->crontabTable)
             ->where($where)
             ->order('id', 'desc')
             ->paginate(['list_rows' => $limit, 'page' => $page]);
@@ -488,7 +511,7 @@ class HttpCrontab
     {
         $param                = $request->post();
         $param['create_time'] = $param['update_time'] = time();
-        $id                   = Db::table($this->systemCrontabTable)
+        $id                   = Db::table($this->crontabTable)
             ->insertGetId($param);
         $id && $this->crontabRun($id);
 
@@ -504,7 +527,7 @@ class HttpCrontab
     {
         $row = [];
         if ($id = $request->get('id')) {
-            $row = Db::table($this->systemCrontabTable)
+            $row = Db::table($this->crontabTable)
                 ->find($id);
         }
         return $row;
@@ -520,13 +543,13 @@ class HttpCrontab
         if ($id = $request->get('id')) {
             $post = $request->post();
 
-            $row = Db::table($this->systemCrontabTable)
+            $row = Db::table($this->crontabTable)
                 ->where('id', $id)
                 ->find();
             if (empty($row)) {
                 return false;
             }
-            $result = Db::table($this->systemCrontabTable)
+            $result = Db::table($this->crontabTable)
                 ->where('id', $id)
                 ->update($post);
 
@@ -554,7 +577,7 @@ class HttpCrontab
     {
         $param = $request->post();
         if (in_array($param['field'], ['status', 'sort'])) {
-            $row = Db::table($this->systemCrontabTable)
+            $row = Db::table($this->crontabTable)
                 ->where('id', $param['id'])
                 ->update([$param['field'] => $param['value']]);
 
@@ -591,7 +614,7 @@ class HttpCrontab
                 }
             }
 
-            $rows = Db::table($this->systemCrontabTable)
+            $rows = Db::table($this->crontabTable)
                 ->wherein('id', $id)
                 ->delete();
 
@@ -615,7 +638,7 @@ class HttpCrontab
                 $this->crontabPool[$id]['crontab']->destroy();
                 unset($this->crontabPool[$id]);
             }
-            Db::table($this->systemCrontabTable)
+            Db::table($this->crontabTable)
                 ->where('id', $id)
                 ->update(['status' => self::NORMAL_STATUS]);
             $this->crontabRun($id);
@@ -632,7 +655,7 @@ class HttpCrontab
     private function crontabRunOne(Request $request): bool
     {
         $id   = $request->post('id');
-        $item = Db::table($this->systemCrontabTable)
+        $item = Db::table($this->crontabTable)
             ->where('id', $id)
             ->find();
         if (!empty($item)) {
@@ -660,7 +683,7 @@ class HttpCrontab
      */
     private function crontabRun($id, bool $run = false)
     {
-        $data = Db::table($this->systemCrontabTable)
+        $data = Db::table($this->crontabTable)
             ->where('id', $id)
             ->where('status', self::NORMAL_STATUS)
             ->find();
@@ -1028,7 +1051,7 @@ class HttpCrontab
         $crontab_id = $request->get('crontab_id');
         [$page, $limit, $where] = $this->buildParames($request->get());
         $crontab_id && $where[] = ['crontab_id', '=', $request->get('crontab_id')];
-        $data = Db::table($this->systemCrontabLogTable)
+        $data = Db::table($this->crontabLogTable)
             ->where($where)
             ->order(['id' => 'desc'])
             ->paginate(['list_rows' => $limit, 'page' => $page]);
@@ -1042,7 +1065,7 @@ class HttpCrontab
      */
     private function crontabRunLog(array $data): void
     {
-        Db::table($this->systemCrontabLogTable)->insert($data);
+        Db::table($this->crontabLogTable)->insert($data);
     }
 
     /**
@@ -1052,7 +1075,7 @@ class HttpCrontab
      */
     private function cronUpdateTask($task)
     {
-        Db::table($this->systemCrontabTable)
+        Db::table($this->crontabTable)
             ->where('id', $task['id'])
             ->update([
                 'running_times'     => Db::raw('running_times+1'),
@@ -1160,8 +1183,8 @@ class HttpCrontab
     private function checkCrontabTables()
     {
         $allTables = $this->getDbTables();
-        !in_array($this->systemCrontabTable, $allTables) && $this->createSystemCrontabTable();
-        !in_array($this->systemCrontabLogTable, $allTables) && $this->createSystemCrontabLogTable();
+        !in_array($this->crontabTable, $allTables) && $this->createSystemCrontabTable();
+        !in_array($this->crontabLogTable, $allTables) && $this->createSystemCrontabLogTable();
     }
 
     /**
@@ -1170,7 +1193,7 @@ class HttpCrontab
     private function createSystemCrontabTable()
     {
         $sql = <<<SQL
- CREATE TABLE IF NOT EXISTS `{$this->systemCrontabTable}`  (
+ CREATE TABLE IF NOT EXISTS `{$this->crontabTable}`  (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `title` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '任务标题',
   `type` tinyint(1) NOT NULL DEFAULT 1 COMMENT '任务类型 (1 command, 2 class, 3 url 4 shell 5 sql)',
@@ -1202,7 +1225,7 @@ SQL;
     private function createSystemCrontabLogTable()
     {
         $sql = <<<SQL
-CREATE TABLE IF NOT EXISTS `{$this->systemCrontabLogTable}`  (
+CREATE TABLE IF NOT EXISTS `{$this->crontabLogTable}`  (
   `id` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `crontab_id` bigint UNSIGNED NOT NULL COMMENT '任务id',
   `target` varchar(255) NOT NULL COMMENT '调用目标',

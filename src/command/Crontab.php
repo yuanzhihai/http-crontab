@@ -16,7 +16,6 @@ class Crontab extends Command
         $this->setName('crontab')
             ->addArgument('action', Argument::REQUIRED, 'start|stop|restart|reload|status|connections')
             ->addOption('daemon', 'd', Option::VALUE_NONE, 'Run the http crontab server in daemon mode.')
-            ->addOption('name', null, Option::VALUE_OPTIONAL, 'Crontab name', 'Crontab Server')
             ->addOption('debug', null, Option::VALUE_NONE, 'Print log')
             ->setDescription('Run http crontab server');
     }
@@ -29,21 +28,22 @@ class Crontab extends Command
             return false;
         }
         $options = $input->getOptions();
-        $url     = '';
-        if (config('crontab.base_url') !== null && config('crontab.base_url')) {
-            if (!preg_match('/https?:\/\//', config('crontab.base_url'))) {
-                $this->output->writeln('crontab base_url 配置值非法');
-                return false;
-            }
-            $url = config('crontab.base_url');
+        $config  = config('crontab');
+        if ($config['base_url'] && !preg_match('/https?:\/\//', $config['base_url'])) {
+            $this->output->writeln('crontab base_url 配置值非法');
+            return false;
         }
 
-        $server   = new HttpCrontab($url);
+        $server   = new HttpCrontab($config['base_url']);
         $database = config('database.connections.mysql');
-        $server->setName($options['name'])
+        $server->setName($config['name'])
             ->setDbConfig($database ?? []);
-        if (config('crontab.safe_key') !== null && config('crontab.safe_key')) {
-            $server->setSafeKey(config('crontab.safe_key'));
+        if ($config['safe_key']) {
+            $server->setSafeKey($config['safe_key']);
+        }
+        if ($config['table']) {
+            $server->setTaskTable($config['table']['task'])
+                ->setTaskLogTable($config['table']['task_log']);
         }
         $options['debug'] && $server->setDebug();
         $server->run();
